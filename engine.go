@@ -15,9 +15,10 @@ type D map[string]any
 
 // Engine is the test search engine
 type Engine struct {
-	idx bleve.Index
-	dsl dialect.DSL
-	d   dialect.Dialect
+	idx      bleve.Index
+	dsl      dialect.DSL
+	d        dialect.Dialect
+	idxField string
 }
 
 // Result is a minimal search result for assertions
@@ -40,7 +41,7 @@ func New(dsl dialect.DSL) (*Engine, error) {
 		return nil, errors.New("no such dialect")
 	}
 
-	return &Engine{idx: idx, dsl: dsl, d: d}, nil
+	return &Engine{idx: idx, dsl: dsl, d: d, idxField: "id"}, nil
 }
 
 // WithCorpus indexes a slice of documents (maps or structs).
@@ -52,7 +53,7 @@ func (e *Engine) WithCorpus(docs []any) (*Engine, error) {
 		var m map[string]any
 		_ = json.Unmarshal(b, &m)
 
-		id, ok := m["id"].(string)
+		id, ok := m[e.idxField].(string)
 		if !ok {
 			return nil, fmt.Errorf("document missing 'id' field")
 		}
@@ -67,6 +68,13 @@ func (e *Engine) WithCorpus(docs []any) (*Engine, error) {
 // to evaluate
 func (e *Engine) WithDialect(d dialect.DSL) *Engine {
 	e.dsl = d
+	return e
+}
+
+// WithIndexField takes the field name to index during corpus
+// indexing stage
+func (e *Engine) WithIndexField(f string) *Engine {
+	e.idxField = f
 	return e
 }
 
