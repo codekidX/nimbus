@@ -31,6 +31,11 @@ func extractQuery(q map[string]any, parentPath string) query.Query {
 		return parseMatchWithParent(match, parentPath)
 	}
 
+	// handle match_phrase query
+	if matchPhrase, ok := q["match_phrase"].(map[string]any); ok {
+		return parseMatchPhraseWithParent(matchPhrase, parentPath)
+	}
+
 	// handle bool query
 	if boolPart, ok := q["bool"].(map[string]any); ok {
 		return parseBoolWithParent(boolPart, parentPath)
@@ -57,6 +62,28 @@ func parseMatchWithParent(match map[string]any, parentPath string) query.Query {
 		boost, _ := vmap["boost"].(float64)
 
 		mq := bleve.NewMatchQuery(term)
+
+		// prepend parent path if exists
+		fieldName := field
+		if parentPath != "" {
+			fieldName = parentPath + "." + field
+		}
+		mq.SetField(fieldName)
+		if boost > 0 {
+			mq.SetBoost(boost)
+		}
+		return mq
+	}
+	return nil
+}
+
+func parseMatchPhraseWithParent(match map[string]any, parentPath string) query.Query {
+	for field, v := range match {
+		vmap, _ := v.(map[string]any)
+		term, _ := vmap["query"].(string)
+		boost, _ := vmap["boost"].(float64)
+
+		mq := bleve.NewMatchPhraseQuery(term)
 
 		// prepend parent path if exists
 		fieldName := field

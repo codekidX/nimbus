@@ -9,6 +9,10 @@ import (
 	"github.com/codekidx/nimbus/dialect"
 )
 
+// D is document type for easier identification for nimbus Document
+// which is used for providing corupus
+type D map[string]any
+
 // Engine is the test search engine
 type Engine struct {
 	idx bleve.Index

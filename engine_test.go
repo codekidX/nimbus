@@ -10,8 +10,8 @@ import (
 func TestNimbusMatchBoost(t *testing.T) {
 	engine, _ := New(dialect.ESDSL)
 	_, err := engine.WithCorpus([]any{
-		map[string]any{"id": "1", "title": "Sony camera"},
-		map[string]any{"id": "2", "title": "Canon camera"},
+		D{"id": "1", "title": "Sony camera"},
+		D{"id": "2", "title": "Canon camera"},
 	})
 	if err != nil {
 		t.Fatalf("failed to load corpus: %v", err)
@@ -38,12 +38,43 @@ func TestNimbusMatchBoost(t *testing.T) {
 	}
 }
 
+func TestNimbusMatchPhraseBoost(t *testing.T) {
+	engine, _ := New(dialect.ESDSL)
+	_, err := engine.WithCorpus([]any{
+		D{"id": "1", "title": "Sony camera"},
+		D{"id": "2", "title": "Canon camera"},
+	})
+	if err != nil {
+		t.Fatalf("failed to load corpus: %v", err)
+	}
+
+	// Boost Sony title matches higher
+	query := `{
+		"match_phrase": {
+			"title": { "query": "canon camera", "boost": 2.0 }
+		}
+	}`
+
+	results, err := engine.Query(query, 10)
+	if err != nil {
+		t.Fatalf("query failed: %v", err)
+	}
+	if len(results) == 0 {
+		t.Fatal("expected at least one result")
+	}
+
+	// Assert top hit
+	if results[0].ID != "2" {
+		t.Fatalf("expected doc 2 (Canon) to be top hit, got %s", results[0].ID)
+	}
+}
+
 func TestNimbusBoolQuery(t *testing.T) {
 	engine, _ := New(dialect.ESDSL)
 	_, _ = engine.WithCorpus([]any{
-		map[string]any{"id": "1", "title": "Sony camera", "description": "Best camera for travel"},
-		map[string]any{"id": "2", "title": "Canon DSLR", "description": "Professional photography"},
-		map[string]any{"id": "3", "title": "Nikon lens", "description": "Great for wildlife"},
+		D{"id": "1", "title": "Sony camera", "description": "Best camera for travel"},
+		D{"id": "2", "title": "Canon DSLR", "description": "Professional photography"},
+		D{"id": "3", "title": "Nikon lens", "description": "Great for wildlife"},
 	})
 
 	query := `{
@@ -70,20 +101,20 @@ func TestNimbusBoolQuery(t *testing.T) {
 func TestNimbusNestedQuery(t *testing.T) {
 	engine, _ := New(dialect.ESDSL)
 	_, _ = engine.WithCorpus([]any{
-		map[string]any{
+		D{
 			"id": "1",
-			"user": map[string]any{
+			"user": D{
 				"name": "Alice",
-				"address": map[string]any{
+				"address": D{
 					"city": "Paris",
 				},
 			},
 		},
-		map[string]any{
+		D{
 			"id": "2",
-			"user": map[string]any{
+			"user": D{
 				"name": "Bob",
-				"address": map[string]any{
+				"address": D{
 					"city": "London",
 				},
 			},
