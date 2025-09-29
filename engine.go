@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/codekidx/nimbus/dialect"
@@ -61,6 +62,31 @@ func (e *Engine) WithCorpus(docs []any) (*Engine, error) {
 			return nil, err
 		}
 	}
+	return e, nil
+}
+
+// LoadCorpus helps you load corpus file from the given path
+func (e *Engine) LoadCorpus(path string) (*Engine, error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var docs []map[string]any
+	if err = json.Unmarshal(b, &docs); err != nil {
+		return nil, err
+	}
+
+	for _, doc := range docs {
+		id, ok := doc[e.idxField].(string)
+		if !ok {
+			return nil, fmt.Errorf("document missing 'id' field")
+		}
+		if err := e.idx.Index(id, doc); err != nil {
+			return nil, err
+		}
+	}
+
 	return e, nil
 }
 
